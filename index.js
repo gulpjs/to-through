@@ -31,6 +31,7 @@ function toThrough(readable) {
 
   var shouldFlow = true;
   wrapper.on('pipe', disableFlow);
+  readable.on('error', wrapper.emit.bind(wrapper, 'error'));
 
   function disableFlow() {
     // If the wrapper is piped, disable flow

@@ -58,6 +58,22 @@ describe('toThrough (buffer mode)', function() {
     ], done);
   });
 
+  it('re-emits errors from readable', function(done) {
+    var readable = from([new Error('boom')]);
+
+    function assert(err) {
+      expect(err).toExist();
+      expect(err.message).toEqual('boom');
+      done();
+    }
+
+    pipe([
+      from(preContents),
+      toThrough(readable),
+      concat(),
+    ], assert);
+  });
+
   it('flushes the stream if not piped before nextTick', function(done) {
     var readable = from(contents);
 
