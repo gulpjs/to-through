@@ -30,20 +30,26 @@ function toThrough(readable) {
   var wrapper = through(opts, forward, flush);
 
   var shouldFlow = true;
-  wrapper.on('pipe', disableFlow);
+  wrapper.once('pipe', onPipe);
+  wrapper.on('newListener', onListener);
   readable.on('error', wrapper.emit.bind(wrapper, 'error'));
 
-  function disableFlow() {
+  function onListener(event) {
+    // Once we've seen the data or readable event, check if we need to flow
+    if (event === 'data' || event === 'readable') {
+      maybeFlow();
+      this.removeListener('newListener', onListener);
+    }
+  }
+
+  function onPipe() {
     // If the wrapper is piped, disable flow
     shouldFlow = false;
   }
 
-  // Check if we should flow if not piped by nextTick
-  process.nextTick(maybeFlow);
-
   function maybeFlow() {
+    // If we need to flow, end the stream which triggers flush
     if (shouldFlow) {
-      // Triggers flush
       wrapper.end();
     }
   }

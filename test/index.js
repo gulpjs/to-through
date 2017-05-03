@@ -74,15 +74,13 @@ describe('toThrough (buffer mode)', function() {
     ], assert);
   });
 
-  it('flushes the stream if not piped before nextTick', function(done) {
+  it('does not flush the stream if not piped before nextTick', function(done) {
     var readable = from(contents);
 
     var wrapped = toThrough(readable);
 
-    function assert(err) {
-      expect(err).toExist();
-      expect(err.message).toEqual('write after end');
-      done();
+    function assert(result) {
+      expect(result).toEqual(preContents.concat(contents).join(''));
     }
 
     process.nextTick(function() {
@@ -90,7 +88,7 @@ describe('toThrough (buffer mode)', function() {
         from(preContents),
         wrapped,
         concat(assert),
-      ], assert);
+      ], done);
     });
   });
 });
@@ -168,15 +166,13 @@ describe('toThrough (object mode)', function() {
     ], done);
   });
 
-  it('flushes the stream if not piped before nextTick', function(done) {
+  it('does not flush the stream if not piped before nextTick', function(done) {
     var readable = from.obj(contents);
 
     var wrapped = toThrough(readable);
 
-    function assert(err) {
-      expect(err).toExist();
-      expect(err.message).toEqual('write after end');
-      done();
+    function assert(result) {
+      expect(result).toEqual(preContents.concat(contents));
     }
 
     process.nextTick(function() {
@@ -184,7 +180,7 @@ describe('toThrough (object mode)', function() {
         from.obj(preContents),
         wrapped,
         concat(assert),
-      ], assert);
+      ], done);
     });
   });
 });
