@@ -23,7 +23,9 @@
     "cover": "istanbul cover _mocha --report lcovonly",
     "coveralls": "npm run cover && istanbul-coveralls"
   },
-  "dependencies": {},
+  "dependencies": {
+    "through2": "^2.0.3"
+  },
   "devDependencies": {
     "eslint": "^1.10.3",
     "eslint-config-gulp": "^2.0.0",
