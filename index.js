@@ -1,17 +1,8 @@
 'use strict';
 
-var through = require('through2');
-
-function forward(chunk, enc, cb) {
-  cb(null, chunk);
-}
+var Transform = require('streamx').Transform;
 
 function toThrough(readable) {
-  var opts = {
-    objectMode: readable._readableState.objectMode,
-    highWaterMark: readable._readableState.highWaterMark,
-  };
-
   function flush(cb) {
     var self = this;
 
@@ -26,18 +17,27 @@ function toThrough(readable) {
     }
   }
 
-  var wrapper = through(opts, forward, flush);
+  var wrapper = new Transform({
+    highWaterMark: readable._readableState.highWaterMark,
+    flush: flush,
+  });
 
   var shouldFlow = true;
   wrapper.once('pipe', onPipe);
+  wrapper.on('piping', onPiping);
   wrapper.on('newListener', onListener);
   readable.on('error', wrapper.emit.bind(wrapper, 'error'));
+
+  function onPiping() {
+    maybeFlow();
+    this.removeListener('piping', onPiping);
+    this.removeListener('newListener', onListener);
+  }
 
   function onListener(event) {
     // Once we've seen the data or readable event, check if we need to flow
     if (event === 'data' || event === 'readable') {
-      maybeFlow();
-      this.removeListener('newListener', onListener);
+      onPiping.call(this);
     }
   }
 

@@ -13,10 +13,11 @@ Wrap a ReadableStream in a TransformStream.
 ## Usage
 
 ```js
-var from = require('from2');
+var streamx = require('streamx');
 var concat = require('concat-stream');
 var toThrough = require('to-through');
 
+var from = streamx.Readable.from;
 var readable = from([' ', 'hello', ' ', 'world']);
 
 // Can be used as a Readable or Transform
@@ -35,7 +36,8 @@ from(['hi', ' ', 'there', ','])
 
 ### `toThrough(readableStream)`
 
-Takes a `readableStream` as the only argument and returns a `through2` stream. If the returned stream is piped before `nextTick`, the wrapped `readableStream` will not flow until the upstream is flushed. If the stream is not piped before `nextTick`, it is ended and flushed (acting as a proper readable).
+Takes a `readableStream` as the only argument and returns a wrapper stream.  Any data
+piped into the wrapper before the wrapper is piped out will flush before `readableStream`.
 
 ## License
 
