@@ -6,7 +6,7 @@
 
 # to-through
 
-[![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][travis-image]][travis-url] [![AppVeyor Build Status][appveyor-image]][appveyor-url] [![Coveralls Status][coveralls-image]][coveralls-url] [![Gitter chat][gitter-image]][gitter-url]
+[![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][ci-image]][ci-url] [![Coveralls Status][coveralls-image]][coveralls-url]
 
 Wrap a ReadableStream in a TransformStream.
 
@@ -39,18 +39,14 @@ Takes a `readableStream` as the only argument and returns a `through2` stream. I
 
 MIT
 
-[downloads-image]: http://img.shields.io/npm/dm/to-through.svg
-[npm-url]: https://npmjs.com/package/to-through
-[npm-image]: http://img.shields.io/npm/v/to-through.svg
+<!-- prettier-ignore-start -->
+[downloads-image]: https://img.shields.io/npm/dm/to-through.svg?style=flat-square
+[npm-url]: https://www.npmjs.com/package/to-through
+[npm-image]: https://img.shields.io/npm/v/to-through.svg?style=flat-square
 
-[travis-url]: https://travis-ci.org/gulpjs/to-through
-[travis-image]: http://img.shields.io/travis/gulpjs/to-through.svg?label=travis-ci
-
-[appveyor-url]: https://ci.appveyor.com/project/gulpjs/to-through
-[appveyor-image]: https://img.shields.io/appveyor/ci/gulpjs/to-through.svg?label=appveyor
+[ci-url]: https://github.com/gulpjs/to-through/actions?query=workflow:dev
+[ci-image]: https://img.shields.io/github/workflow/status/gulpjs/to-through/dev?style=flat-square
 
 [coveralls-url]: https://coveralls.io/r/gulpjs/to-through
-[coveralls-image]: http://img.shields.io/coveralls/gulpjs/to-through/master.svg
-
-[gitter-url]: https://gitter.im/gulpjs/gulp
-[gitter-image]: https://badges.gitter.im/gulpjs/gulp.png
+[coveralls-image]: https://img.shields.io/coveralls/gulpjs/to-through/master.svg?style=flat-square
+<!-- prettier-ignore-end -->

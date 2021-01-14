@@ -21,7 +21,7 @@ describe('toThrough (buffer mode)', function() {
     var readable = from(contents);
 
     function assert(result) {
-      expect(result).toEqual(contents.join(''));
+      expect(result.toString()).toEqual(contents.join(''));
     }
 
     pipe([
@@ -34,7 +34,7 @@ describe('toThrough (buffer mode)', function() {
     var readable = from(contents);
 
     function assert(result) {
-      expect(result).toEqual(contents.join(''));
+      expect(result.toString()).toEqual(contents.join(''));
     }
 
     pipe([
@@ -48,7 +48,7 @@ describe('toThrough (buffer mode)', function() {
     var readable = from(contents);
 
     function assert(result) {
-      expect(result).toEqual(preContents.concat(contents).join(''));
+      expect(result.toString()).toEqual(preContents.concat(contents).join(''));
     }
 
     pipe([
@@ -62,7 +62,6 @@ describe('toThrough (buffer mode)', function() {
     var readable = from([new Error('boom')]);
 
     function assert(err) {
-      expect(err).toExist();
       expect(err.message).toEqual('boom');
       done();
     }
@@ -80,7 +79,7 @@ describe('toThrough (buffer mode)', function() {
     var wrapped = toThrough(readable);
 
     function assert(result) {
-      expect(result).toEqual(preContents.concat(contents).join(''));
+      expect(result.toString()).toEqual(preContents.concat(contents).join(''));
     }
 
     process.nextTick(function() {
