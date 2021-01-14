@@ -24,9 +24,11 @@ var maybeTransform = toThrough(readable);
 
 from(['hi', ' ', 'there', ','])
   .pipe(maybeTransform)
-  .pipe(concat(function(result) {
-    // result.toString() === 'hi there, hello world'
-  }));
+  .pipe(
+    concat(function (result) {
+      // result.toString() === 'hi there, hello world'
+    })
+  );
 ```
 
 ## API
