@@ -7,7 +7,6 @@ function forward(chunk, enc, cb) {
 }
 
 function toThrough(readable) {
-
   var opts = {
     objectMode: readable._readableState.objectMode,
     highWaterMark: readable._readableState.highWaterMark,
