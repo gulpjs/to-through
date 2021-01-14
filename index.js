@@ -21,7 +21,7 @@ function toThrough(readable) {
 
     function onReadable() {
       var chunk;
-      while (chunk = readable.read()) {
+      while ((chunk = readable.read())) {
         self.push(chunk);
       }
     }
