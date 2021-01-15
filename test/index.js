@@ -1,7 +1,7 @@
 'use strict';
 
 var expect = require('expect');
-var stream = require('stream');
+var stream = require('readable-stream');
 var streamx = require('streamx');
 var concatStream = require('concat-stream');
 
@@ -16,7 +16,7 @@ function streamxConcat(callback) {
       cb();
     },
 
-    destroy: function () {
+    flush: function () {
       if (callback) {
         if (results.length > 0 && typeof results[0] === 'string') {
           results.toString = function () {
@@ -196,3 +196,11 @@ describe('stream.pipeline with stream.Readable, streamxConcat', testRunner(strea
 
 describe('stream.pipeline with streamx.Readable, concatStream', testRunner(stream.pipeline, streamx.Readable, concatStream));
 describe('stream.pipeline with streamx.Readable, streamxConcat', testRunner(stream.pipeline, streamx.Readable, streamxConcat));
+
+/* Disabled until streamx.pipeline callback is working
+describe('streamx.pipeline with stream.Readable, concatStream', testRunner(streamx.pipeline, stream.Readable, concatStream));
+describe('streamx.pipeline with stream.Readable, streamxConcat', testRunner(streamx.pipeline, stream.Readable, streamxConcat));
+
+describe('streamx.pipeline with streamx.Readable, concatStream', testRunner(streamx.pipeline, streamx.Readable, concatStream));
+describe('streamx.pipeline with streamx.Readable, streamxConcat', testRunner(streamx.pipeline, streamx.Readable, streamxConcat));
+ */
