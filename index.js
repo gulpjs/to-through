@@ -1,18 +1,38 @@
 'use strict';
 
-var Transform = require('streamx').Transform;
+var Duplex = require('streamx').Duplex;
 
 function toThrough(readable) {
-  function flush(cb) {
+  var highWaterMark = readable._readableState.highWaterMark;
+
+  // Streamx uses 16384 as the default highWaterMark for everything and then
+  // divides it by 1024 for objects
+  // However, node's objectMode streams the number of objects as highWaterMark, so we need to
+  // multiply the objectMode highWaterMark by 1024 to make it streamx compatible
+  if (readable._readableState.objectMode) {
+    highWaterMark = readable._readableState.highWaterMark * 1024;
+  }
+  console.log('hWM', highWaterMark);
+
+  function read(cb) {
     var self = this;
 
-    // If we are being piped to an output stream, we want to listen for
-    // `drain` events to adhere to our highWaterMark
-    if (self._readableState.pipeTo) {
-      self._readableState.pipeTo.on('drain', onReadable);
+    console.log('writable ended?', self._writableState.ended);
+
+    // If we aren't done writing, then we no-op the read until all the upstream data is written
+    if (!self._writableState.ended) {
+      return cb();
     }
 
-    readable.on('readable', onReadable);
+    console.log('readable ended?', readable._readableState.ended);
+
+    // If the readable stream was marked ended between reads, the `end` event won't be
+    // handled, so we check the ended state early and bail
+    if (readable._readableState.ended) {
+      self.push(null);
+      return cb();
+    }
+
     readable.on('end', onEnd);
     readable.on('error', onError);
 
@@ -24,6 +44,7 @@ function toThrough(readable) {
 
     function onEnd() {
       cleanup();
+      self.push(null);
       cb();
     }
 
@@ -32,31 +53,41 @@ function toThrough(readable) {
       cb(err);
     }
 
+    function onRead(chunk) {
+      cleanup();
+      // We don't check the drained event since calling `read` should expect to get 1 chunk
+      self.push(chunk);
+      cb();
+    }
+
     function onReadable() {
+      // Once `readable`, we need to grab the first chunk before passing it to onRead
       var chunk = readable.read();
-      var drained = true;
-      while (chunk !== null && drained) {
-        drained = self.push(chunk);
-        if (drained) {
-          chunk = readable.read();
-        }
-      }
+      onRead(chunk);
+    }
+
+    var chunk = readable.read();
+    console.log('on read', chunk);
+
+    if (chunk !== null) {
+      onRead(chunk);
+    } else {
+      // If the first chunk is null we want to wait for `readable` to
+      // handle both the first access and a backpressured stream
+      readable.once('readable', onReadable);
     }
   }
 
-  // Streamx uses `16384` as the default highWaterMark and then it divides it by 1024 for objects
-  var highWaterMark = 16 * 1024;
-  // However, node's objectMode streams the number of objects as highWaterMark, so we need to
-  // multiply the objectMode highWaterMark by 1024 to make it streamx compatible
-  if (readable._readableState.objectMode) {
-    highWaterMark = readable._readableState.highWaterMark * 1024;
-  } else {
-    highWaterMark = readable._readableState.highWaterMark;
+  // We want to push the data along as it comes
+  function write(data, cb) {
+    this.push(data);
+    cb();
   }
 
-  var wrapper = new Transform({
+  var wrapper = new Duplex({
     highWaterMark: highWaterMark,
-    flush: flush,
+    read: read,
+    write: write,
   });
 
   var shouldFlow = true;
