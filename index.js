@@ -7,9 +7,24 @@ function toThrough(readable) {
     var self = this;
 
     readable.on('readable', onReadable);
-    // TODO: Need to cleanup
-    readable.on('end', cb);
-    readable.on('error', cb);
+    readable.on('end', onEnd);
+    readable.on('error', onError);
+
+    function cleanup() {
+      readable.off('readable', onReadable);
+      readable.off('end', onEnd);
+      readable.off('error', onError);
+    }
+
+    function onEnd() {
+      cleanup();
+      cb();
+    }
+
+    function onError(err) {
+      cleanup();
+      cb(err);
+    }
 
     function onReadable() {
       var chunk;
@@ -28,18 +43,17 @@ function toThrough(readable) {
   wrapper.once('pipe', onPipe);
   wrapper.on('piping', onPiping);
   wrapper.on('newListener', onListener);
-  readable.on('error', wrapper.emit.bind(wrapper, 'error'));
 
   function onPiping() {
     maybeFlow();
-    this.removeListener('piping', onPiping);
-    this.removeListener('newListener', onListener);
+    wrapper.off('piping', onPiping);
+    wrapper.off('newListener', onListener);
   }
 
   function onListener(event) {
     // Once we've seen the data or readable event, check if we need to flow
     if (event === 'data' || event === 'readable') {
-      onPiping.call(this);
+      onPiping();
     }
   }
 
