@@ -12,6 +12,8 @@ function suite(moduleName) {
   var stream = require(moduleName);
 
   function concat(fn, opts) {
+    opts = opts || {};
+
     var items = [];
 
     return new stream.Writable(
@@ -21,8 +23,10 @@ function suite(moduleName) {
             cb = enc;
           }
 
-          items.push(data);
-          cb();
+          setTimeout(function () {
+            items.push(data);
+            cb();
+          }, opts.timeout || 1);
         },
 
         final: function (cb) {
@@ -94,6 +98,25 @@ function suite(moduleName) {
           stream.Readable.from(preContents),
           toThrough(readable),
           concat(assert),
+        ],
+        done
+      );
+    });
+
+    it('inherits the highWaterMark of the wrapped stream', function (done) {
+      this.timeout(5000);
+
+      var readable = stream.Readable.from(contents, { highWaterMark: 1 });
+
+      function assert(result) {
+        expect(result).toEqual(preContents.concat(contents).join(''));
+      }
+
+      stream.pipeline(
+        [
+          stream.Readable.from(preContents),
+          toThrough(readable),
+          concat(assert, { timeout: 250 }),
         ],
         done
       );

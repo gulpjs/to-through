@@ -6,6 +6,12 @@ function toThrough(readable) {
   function flush(cb) {
     var self = this;
 
+    // If we are being piped to an output stream, we want to listen for
+    // `drain` events to adhere to our highWaterMark
+    if (self._readableState.pipeTo) {
+      self._readableState.pipeTo.on('drain', onReadable);
+    }
+
     readable.on('readable', onReadable);
     readable.on('end', onEnd);
     readable.on('error', onError);
@@ -27,15 +33,29 @@ function toThrough(readable) {
     }
 
     function onReadable() {
-      var chunk;
-      while ((chunk = readable.read())) {
-        self.push(chunk);
+      var chunk = readable.read();
+      var drained = true;
+      while (chunk !== null && drained) {
+        drained = self.push(chunk);
+        if (drained) {
+          chunk = readable.read();
+        }
       }
     }
   }
 
+  // Streamx uses `16384` as the default highWaterMark and then it divides it by 1024 for objects
+  var highWaterMark = 16 * 1024;
+  // However, node's objectMode streams the number of objects as highWaterMark, so we need to
+  // multiply the objectMode highWaterMark by 1024 to make it streamx compatible
+  if (readable._readableState.objectMode) {
+    highWaterMark = readable._readableState.highWaterMark * 1024;
+  } else {
+    highWaterMark = readable._readableState.highWaterMark;
+  }
+
   var wrapper = new Transform({
-    highWaterMark: readable._readableState.highWaterMark,
+    highWaterMark: highWaterMark,
     flush: flush,
   });
 
