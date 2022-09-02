@@ -46,7 +46,7 @@ function suite(moduleName) {
     var contents = ['hello', ' ', 'world', ' ', '123'];
 
     it('can wrap a Readable and be used as a Readable', function (done) {
-      var readable = stream.Readable.from(contents, { objectMode: false });
+      var readable = stream.Readable.from(contents);
 
       function assert(result) {
         expect(result).toEqual(contents.join(''));
