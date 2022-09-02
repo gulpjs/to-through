@@ -7,7 +7,9 @@ function toThrough(readable) {
     var self = this;
 
     readable.on('readable', onReadable);
+    // TODO: Need to cleanup
     readable.on('end', cb);
+    readable.on('error', cb);
 
     function onReadable() {
       var chunk;
