@@ -2,61 +2,68 @@
 
 var Transform = require('streamx').Transform;
 
+// Based on help from @mafintosh via https://gist.github.com/mafintosh/92836a8d03df0ef41356e233e0f06382
+
 function toThrough(readable) {
+  var highWaterMark = readable._readableState.highWaterMark;
+
+  // Streamx uses 16384 as the default highWaterMark for everything and then
+  // divides it by 1024 for objects
+  // However, node's objectMode streams the number of objects as highWaterMark, so we need to
+  // multiply the objectMode highWaterMark by 1024 to make it streamx compatible
+  if (readable._readableState.objectMode) {
+    highWaterMark = readable._readableState.highWaterMark * 1024;
+  }
+
   function flush(cb) {
     var self = this;
 
-    var done = false;
-
-    // all writes drained, so change the read impl now
+    // Afer all writes have drained, we change the `_read` implementation
     self._read = function (cb) {
       readable.resume();
       cb();
     };
 
     readable.on('data', onData);
-    readable.on('end', onDone);
-    readable.on('error', onDone);
+    readable.once('end', onDone);
+    readable.once('error', onDone);
+
+    function cleanup() {
+      readable.off('data', onData);
+      readable.off('end', onDone);
+      readable.off('error', onDone);
+    }
 
     function onData(data) {
-      // when push returns false it'll call _read later
       var drained = self.push(data);
-      console.log('drained?', drained);
+      // When the stream is not drained, we pause it because `_read` will be called later
       if (!drained) {
         readable.pause();
+        // cleanup();
       }
     }
 
     function onDone(err) {
-      if (done) return;
-      done = true;
+      cleanup();
       cb(err);
     }
   }
 
-  // Streamx uses `16384` as the default highWaterMark and then it divides it by 1024 for objects
-  var highWaterMark = 16 * 1024;
-  // However, node's objectMode streams the number of objects as highWaterMark, so we need to
-  // multiply the objectMode highWaterMark by 1024 to make it streamx compatible
-  if (readable._readableState.objectMode) {
-    highWaterMark = readable._readableState.highWaterMark * 1024;
-  } else {
-    highWaterMark = readable._readableState.highWaterMark;
-  }
+  // Handle the case where a user destroy the returned stream
+  // function predestroy() {
+  //   readable.destroy(new Error('Wrapper destroyed'));
+  // }
 
   var wrapper = new Transform({
     highWaterMark: highWaterMark,
     flush: flush,
-    predestroy: function () {
-      // hook called if the user destroys this stream explicitly
-      readable.destroy(new Error('Wrapper destroyed'));
-    },
+    // predestroy: predestroy,
   });
 
-  // forward errors
-  readable.on('error', function (err) {
-    wrapper.destroy(err);
-  });
+  // Forward errors from the underlying stream
+  // readable.once('error', function (err) {
+  //   wrapper.destroy(err);
+  // });
 
   var shouldFlow = true;
   wrapper.once('pipe', onPipe);
