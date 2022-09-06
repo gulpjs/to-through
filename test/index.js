@@ -281,7 +281,7 @@ function suite(moduleName) {
     });
 
     it('inherits the highWaterMark of the wrapped stream', function (done) {
-      this.timeout(7000);
+      this.timeout(10000);
 
       var readable = stream.Readable.from(contents, {
         highWaterMark: 1,
@@ -302,7 +302,7 @@ function suite(moduleName) {
     });
 
     it('respects highWaterMark of the output stream', function (done) {
-      this.timeout(7000);
+      this.timeout(10000);
 
       var readable = stream.Readable.from(contents);
 
