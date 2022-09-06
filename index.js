@@ -58,8 +58,8 @@ function toThrough(readable) {
     }
 
     function onRead(chunk) {
-      self.push(chunk);
       cleanup();
+      self.push(chunk);
       cb();
     }
 
