@@ -12,34 +12,88 @@ function toThrough(readable) {
   if (readable._readableState.objectMode) {
     highWaterMark = readable._readableState.highWaterMark * 1024;
   }
-  console.log('hWM', highWaterMark);
+
+  var writeFinished = false;
+  var readableEnded = false;
+  var readableErr;
+
+  readable.once('end', function () {
+    readableEnded = true;
+  });
+
+  readable.once('error', function (err) {
+    readableErr = err;
+  });
 
   function read(cb) {
     var self = this;
 
-    console.log('writable ended?', self._writableState.ended);
-
     // If we aren't done writing, then we no-op the read until all the upstream data is written
-    if (!self._writableState.ended) {
+    if (!writeFinished) {
       return cb();
     }
 
-    console.log('readable ended?', readable._readableState.ended);
-
     // If the readable stream was marked ended between reads, the `end` event won't be
     // handled, so we check the ended state early and bail
-    if (readable._readableState.ended) {
+    if (readableEnded) {
       self.push(null);
       return cb();
     }
 
-    readable.on('end', onEnd);
-    readable.on('error', onError);
+    // If the readable stream errored between reads, the `error` event won't be
+    // handled, so we check the error state early and bail
+    if (readableErr) {
+      return cb(readableErr);
+    }
 
     function cleanup() {
       readable.off('readable', onReadable);
       readable.off('end', onEnd);
+    }
+
+    function onEnd() {
+      cleanup();
+      self.push(null);
+      cb();
+    }
+
+    function onRead(chunk) {
+      self.push(chunk);
+      cleanup();
+      cb();
+    }
+
+    function onReadable() {
+      // Once `readable`, we need to grab the first chunk before passing it to onRead
+      var chunk = readable.read();
+      onRead(chunk);
+    }
+
+    var chunk = readable.read();
+
+    readable.once('end', onEnd);
+
+    if (chunk !== null) {
+      onRead(chunk);
+    } else {
+      // If the first chunk is null we want to wait for `readable` to handle a backpressured stream
+      readable.once('readable', onReadable);
+    }
+  }
+
+  // We want to push the data along as it comes
+  function write(data, cb) {
+    this.push(data);
+    cb();
+  }
+
+  function final(cb) {
+    var self = this;
+
+    function cleanup() {
+      readable.off('end', onEnd);
       readable.off('error', onError);
+      readable.off('readable', onReadable);
     }
 
     function onEnd() {
@@ -53,41 +107,24 @@ function toThrough(readable) {
       cb(err);
     }
 
-    function onRead(chunk) {
-      cleanup();
-      // We don't check the drained event since calling `read` should expect to get 1 chunk
+    function onReadable() {
+      writeFinished = true;
+      var chunk = readable.read();
       self.push(chunk);
+      cleanup();
       cb();
     }
 
-    function onReadable() {
-      // Once `readable`, we need to grab the first chunk before passing it to onRead
-      var chunk = readable.read();
-      onRead(chunk);
-    }
-
-    var chunk = readable.read();
-    console.log('on read', chunk);
-
-    if (chunk !== null) {
-      onRead(chunk);
-    } else {
-      // If the first chunk is null we want to wait for `readable` to
-      // handle both the first access and a backpressured stream
-      readable.once('readable', onReadable);
-    }
-  }
-
-  // We want to push the data along as it comes
-  function write(data, cb) {
-    this.push(data);
-    cb();
+    readable.once('end', onEnd);
+    readable.once('error', onError);
+    readable.once('readable', onReadable);
   }
 
   var wrapper = new Duplex({
     highWaterMark: highWaterMark,
     read: read,
     write: write,
+    final: final,
   });
 
   var shouldFlow = true;

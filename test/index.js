@@ -19,7 +19,6 @@ function suite(moduleName) {
     return new stream.Writable(
       Object.assign({}, opts, {
         write: function (data, enc, cb) {
-          // console.log('write', data);
           if (typeof enc === 'function') {
             cb = enc;
           }
@@ -91,6 +90,23 @@ function suite(moduleName) {
       );
     });
 
+    it('can wrap an empty Readable and be used as a Transform', function (done) {
+      var readable = stream.Readable.from([], { objectMode: false });
+
+      function assert(result) {
+        expect(result).toEqual(preContents.join(''));
+      }
+
+      stream.pipeline(
+        [
+          stream.Readable.from(preContents, { objectMode: false }),
+          toThrough(readable),
+          concat(assert),
+        ],
+        done
+      );
+    });
+
     it('passes through all upstream before readable', function (done) {
       var readable = stream.Readable.from(contents, { objectMode: false });
 
@@ -108,9 +124,46 @@ function suite(moduleName) {
       );
     });
 
-    it('re-emits errors from readable', function (done) {
+    it('re-emits errors from readable before data', function (done) {
       var readable = new stream.Readable({
         read: function (cb) {
+          var err = new Error('boom');
+          if (typeof cb === 'function') {
+            return cb(err);
+          }
+
+          this.destroy(err);
+        },
+      });
+
+      function assert(err) {
+        expect(err.message).toEqual('boom');
+        done();
+      }
+
+      stream.pipeline(
+        [
+          stream.Readable.from(preContents, { objectMode: false }),
+          toThrough(readable),
+          concat(),
+        ],
+        assert
+      );
+    });
+
+    it('re-emits errors from readable after some data', function (done) {
+      var items = ['hello'];
+      var readable = new stream.Readable({
+        read: function (cb) {
+          var chunk = items.shift();
+          if (chunk) {
+            this.push(chunk);
+            if (typeof cb === 'function') {
+              cb();
+            }
+            return;
+          }
+
           var err = new Error('boom');
           if (typeof cb === 'function') {
             return cb(err);
@@ -291,5 +344,5 @@ function suite(moduleName) {
 }
 
 suite('stream');
-// suite('streamx');
-// suite('readable-stream');
+suite('streamx');
+suite('readable-stream');
