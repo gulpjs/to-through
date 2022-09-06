@@ -19,6 +19,7 @@ function suite(moduleName) {
     return new stream.Writable(
       Object.assign({}, opts, {
         write: function (data, enc, cb) {
+          console.log('write called', data);
           if (typeof enc === 'function') {
             cb = enc;
           }
@@ -232,6 +233,46 @@ function suite(moduleName) {
           stream.Readable.from(preContents),
           toThrough(readable),
           concat(assert, { objectMode: true }),
+        ],
+        done
+      );
+    });
+
+    it('inherits the highWaterMark of the wrapped stream', function (done) {
+      this.timeout(10000);
+
+      var readable = stream.Readable.from(contents, {
+        highWaterMark: 1,
+      });
+
+      function assert(result) {
+        expect(result).toEqual(preContents.concat(contents));
+      }
+
+      stream.pipeline(
+        [
+          stream.Readable.from(preContents),
+          toThrough(readable),
+          concat(assert, { objectMode: true, timeout: 250 }),
+        ],
+        done
+      );
+    });
+
+    it('respects highWaterMark of the output stream', function (done) {
+      this.timeout(10000);
+
+      var readable = stream.Readable.from(contents);
+
+      function assert(result) {
+        expect(result).toEqual(preContents.concat(contents));
+      }
+
+      stream.pipeline(
+        [
+          stream.Readable.from(preContents),
+          toThrough(readable),
+          concat(assert, { highWaterMark: 1, objectMode: true, timeout: 250 }),
         ],
         done
       );

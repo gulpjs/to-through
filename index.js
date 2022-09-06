@@ -6,41 +6,31 @@ function toThrough(readable) {
   function flush(cb) {
     var self = this;
 
-    // If we are being piped to an output stream, we want to listen for
-    // `drain` events to adhere to our highWaterMark
-    if (self._readableState.pipeTo) {
-      self._readableState.pipeTo.on('drain', onReadable);
-    }
+    var done = false;
 
-    readable.on('readable', onReadable);
-    readable.on('end', onEnd);
-    readable.on('error', onError);
-
-    function cleanup() {
-      readable.off('readable', onReadable);
-      readable.off('end', onEnd);
-      readable.off('error', onError);
-    }
-
-    function onEnd() {
-      cleanup();
+    // all writes drained, so change the read impl now
+    self._read = function (cb) {
+      readable.resume();
       cb();
-    }
+    };
 
-    function onError(err) {
-      cleanup();
-      cb(err);
-    }
+    readable.on('data', onData);
+    readable.on('end', onDone);
+    readable.on('error', onDone);
 
-    function onReadable() {
-      var chunk = readable.read();
-      var drained = true;
-      while (chunk !== null && drained) {
-        drained = self.push(chunk);
-        if (drained) {
-          chunk = readable.read();
-        }
+    function onData(data) {
+      // when push returns false it'll call _read later
+      var drained = self.push(data);
+      console.log('drained?', drained);
+      if (!drained) {
+        readable.pause();
       }
+    }
+
+    function onDone(err) {
+      if (done) return;
+      done = true;
+      cb(err);
     }
   }
 
@@ -57,6 +47,15 @@ function toThrough(readable) {
   var wrapper = new Transform({
     highWaterMark: highWaterMark,
     flush: flush,
+    predestroy: function () {
+      // hook called if the user destroys this stream explicitly
+      readable.destroy(new Error('Wrapper destroyed'));
+    },
+  });
+
+  // forward errors
+  readable.on('error', function (err) {
+    wrapper.destroy(err);
   });
 
   var shouldFlow = true;
