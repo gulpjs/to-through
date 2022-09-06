@@ -1,6 +1,8 @@
 'use strict';
 
-var Duplex = require('streamx').Duplex;
+var Transform = require('streamx').Transform;
+
+// Based on help from @mafintosh via https://gist.github.com/mafintosh/92836a8d03df0ef41356e233e0f06382
 
 function toThrough(readable) {
   var highWaterMark = readable._readableState.highWaterMark;
@@ -13,119 +15,55 @@ function toThrough(readable) {
     highWaterMark = readable._readableState.highWaterMark * 1024;
   }
 
-  var writeFinished = false;
-  var readableEnded = false;
-  var readableErr;
-
-  readable.once('end', function () {
-    readableEnded = true;
-  });
-
-  readable.once('error', function (err) {
-    readableErr = err;
-  });
-
-  function read(cb) {
+  function flush(cb) {
     var self = this;
 
-    // If we aren't done writing, then we no-op the read until all the upstream data is written
-    if (!writeFinished) {
-      return cb();
-    }
+    // Afer all writes have drained, we change the `_read` implementation
+    self._read = function (cb) {
+      readable.resume();
+      cb();
+    };
 
-    // If the readable stream was marked ended between reads, the `end` event won't be
-    // handled, so we check the ended state early and bail
-    if (readableEnded) {
-      self.push(null);
-      return cb();
-    }
-
-    // If the readable stream errored between reads, the `error` event won't be
-    // handled, so we check the error state early and bail
-    if (readableErr) {
-      return cb(readableErr);
-    }
+    readable.on('data', onData);
+    readable.once('end', onDone);
+    readable.once('error', onDone);
 
     function cleanup() {
-      readable.off('readable', onReadable);
-      readable.off('end', onEnd);
+      readable.off('data', onData);
+      readable.off('end', onDone);
+      readable.off('error', onDone);
     }
 
-    function onEnd() {
-      cleanup();
-      self.push(null);
-      cb();
+    function onData(data) {
+      var drained = self.push(data);
+      // When the stream is not drained, we pause it because `_read` will be called later
+      if (!drained) {
+        readable.pause();
+        // cleanup();
+      }
     }
 
-    function onRead(chunk) {
-      cleanup();
-      self.push(chunk);
-      cb();
-    }
-
-    function onReadable() {
-      // Once `readable`, we need to grab the first chunk before passing it to onRead
-      var chunk = readable.read();
-      onRead(chunk);
-    }
-
-    var chunk = readable.read();
-
-    readable.once('end', onEnd);
-
-    if (chunk !== null) {
-      onRead(chunk);
-    } else {
-      // If the first chunk is null we want to wait for `readable` to handle a backpressured stream
-      readable.once('readable', onReadable);
-    }
-  }
-
-  // We want to push the data along as it comes
-  function write(data, cb) {
-    this.push(data);
-    cb();
-  }
-
-  function final(cb) {
-    var self = this;
-
-    function cleanup() {
-      readable.off('end', onEnd);
-      readable.off('error', onError);
-      readable.off('readable', onReadable);
-    }
-
-    function onEnd() {
-      cleanup();
-      self.push(null);
-      cb();
-    }
-
-    function onError(err) {
+    function onDone(err) {
       cleanup();
       cb(err);
     }
-
-    function onReadable() {
-      writeFinished = true;
-      var chunk = readable.read();
-      self.push(chunk);
-      cleanup();
-      cb();
-    }
-
-    readable.once('end', onEnd);
-    readable.once('error', onError);
-    readable.once('readable', onReadable);
   }
 
-  var wrapper = new Duplex({
+  // Handle the case where a user destroy the returned stream
+  // function predestroy() {
+  //   readable.destroy(new Error('Wrapper destroyed'));
+  // }
+
+  var wrapper = new Transform({
     highWaterMark: highWaterMark,
-    read: read,
-    write: write,
-    final: final,
+    flush: flush,
+    // predestroy: predestroy,
   });
+
+  // Forward errors from the underlying stream
+  // readable.once('error', function (err) {
+  //   wrapper.destroy(err);
+  // });
 
   var shouldFlow = true;
   wrapper.once('pipe', onPipe);

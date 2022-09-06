@@ -284,7 +284,7 @@ function suite(moduleName) {
       this.timeout(10000);
 
       var readable = stream.Readable.from(contents, {
-        highWaterMark: 1,
+        highWaterMark: moduleName === 'streamx' ? 1024 : 1,
       });
 
       function assert(result) {
@@ -305,6 +305,27 @@ function suite(moduleName) {
       this.timeout(10000);
 
       var readable = stream.Readable.from(contents);
+
+      function assert(result) {
+        expect(result).toEqual(preContents.concat(contents));
+      }
+
+      stream.pipeline(
+        [
+          stream.Readable.from(preContents),
+          toThrough(readable),
+          concat(assert, { highWaterMark: 1, objectMode: true, timeout: 250 }),
+        ],
+        done
+      );
+    });
+
+    it('respects highWaterMark of itself and the output stream', function (done) {
+      this.timeout(10000);
+
+      var readable = stream.Readable.from(contents, {
+        highWaterMark: moduleName === 'streamx' ? 1024 : 1,
+      });
 
       function assert(result) {
         expect(result).toEqual(preContents.concat(contents));
