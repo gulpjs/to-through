@@ -8,7 +8,7 @@
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][ci-image]][ci-url] [![Coveralls Status][coveralls-image]][coveralls-url]
 
-Wrap a ReadableStream in a TransformStream.
+Wrap a `Readable` stream in a `Transform` stream.
 
 ## Usage
 
@@ -35,8 +35,8 @@ Readable.from(['hi', ' ', 'there', ','])
 
 ### `toThrough(readableStream)`
 
-Takes a `readableStream` as the only argument and returns a wrapper stream. Any data
-piped into the wrapper before the wrapper is piped out will flush before `readableStream`.
+Takes a `Readable` stream as the only argument and returns a `Transform` stream wrapper. Any data
+piped into the `Transform` stream is piped passed along before any data from the wrapped `Readable` is injected into the stream.
 
 ## License
 
