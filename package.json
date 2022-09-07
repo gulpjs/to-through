@@ -1,6 +1,6 @@
 {
   "name": "to-through",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Wrap a Readable stream in a Transform stream.",
   "author": "Gulp Team <team@gulpjs.com> (https://gulpjs.com/)",
   "contributors": [
