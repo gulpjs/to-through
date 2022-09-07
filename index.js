@@ -16,6 +16,8 @@ function toThrough(readable) {
   }
 
   var destroyedByError = false;
+  var readableClosed = false;
+  var readableEnded = false;
 
   function flush(cb) {
     var self = this;
@@ -27,13 +29,13 @@ function toThrough(readable) {
     };
 
     readable.on('data', onData);
-    readable.once('end', onDone);
-    readable.once('error', onDone);
+    readable.once('error', onError);
+    readable.once('end', onEnd);
 
     function cleanup() {
       readable.off('data', onData);
-      readable.off('end', onDone);
-      readable.off('error', onDone);
+      readable.off('error', onError);
+      readable.off('end', onEnd);
     }
 
     function onData(data) {
@@ -44,18 +46,28 @@ function toThrough(readable) {
       }
     }
 
-    function onDone(err) {
+    function onError(err) {
       cleanup();
       cb(err);
+    }
+
+    function onEnd() {
+      cleanup();
+      cb();
     }
   }
 
   // Handle the case where a user destroyed the returned stream
   function predestroy() {
-    // But only if the stream wasn't destroyed via an error
-    if (!destroyedByError) {
-      readable.destroy(new Error('Wrapper destroyed'));
+    // Only call destroy on the readable if this `predestroy` wasn't
+    // caused via the readable having an `error` or `close` event
+    if (destroyedByError) {
+      return;
     }
+    if (readableClosed) {
+      return;
+    }
+    readable.destroy(new Error('Wrapper destroyed'));
   }
 
   var wrapper = new Transform({
@@ -65,10 +77,26 @@ function toThrough(readable) {
   });
 
   // Forward errors from the underlying stream
-  readable.once('error', function (err) {
+  readable.once('error', onError);
+  readable.once('end', onEnd);
+  readable.once('close', onClose);
+
+  function onError(err) {
     destroyedByError = true;
     wrapper.destroy(err);
-  });
+  }
+
+  function onEnd() {
+    readableEnded = true;
+  }
+
+  function onClose() {
+    readableClosed = true;
+    // Only destroy the wrapper if the readable hasn't ended successfully
+    if (!readableEnded) {
+      wrapper.destroy();
+    }
+  }
 
   var shouldFlow = true;
   wrapper.once('pipe', onPipe);

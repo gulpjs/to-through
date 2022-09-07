@@ -227,6 +227,10 @@ function suite(moduleName) {
         expect(wrapped.destroyed).toEqual(true);
         done();
       });
+      readable.on('error', function (err) {
+        // To ensure another error isn't surfaced
+        expect(err).toBeUndefined();
+      });
 
       readable.destroy();
     });
