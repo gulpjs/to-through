@@ -15,6 +15,8 @@ function toThrough(readable) {
     highWaterMark = readable._readableState.highWaterMark * 1024;
   }
 
+  var destroyedByError = false;
+
   function flush(cb) {
     var self = this;
 
@@ -39,7 +41,6 @@ function toThrough(readable) {
       // When the stream is not drained, we pause it because `_read` will be called later
       if (!drained) {
         readable.pause();
-        // cleanup();
       }
     }
 
@@ -49,21 +50,25 @@ function toThrough(readable) {
     }
   }
 
-  // Handle the case where a user destroy the returned stream
-  // function predestroy() {
-  //   readable.destroy(new Error('Wrapper destroyed'));
-  // }
+  // Handle the case where a user destroyed the returned stream
+  function predestroy() {
+    // But only if the stream wasn't destroyed via an error
+    if (!destroyedByError) {
+      readable.destroy(new Error('Wrapper destroyed'));
+    }
+  }
 
   var wrapper = new Transform({
     highWaterMark: highWaterMark,
     flush: flush,
-    // predestroy: predestroy,
+    predestroy: predestroy,
   });
 
   // Forward errors from the underlying stream
-  // readable.once('error', function (err) {
-  //   wrapper.destroy(err);
-  // });
+  readable.once('error', function (err) {
+    destroyedByError = true;
+    wrapper.destroy(err);
+  });
 
   var shouldFlow = true;
   wrapper.once('pipe', onPipe);
