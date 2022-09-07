@@ -8,25 +8,25 @@
 
 [![NPM version][npm-image]][npm-url] [![Downloads][downloads-image]][npm-url] [![Build Status][ci-image]][ci-url] [![Coveralls Status][coveralls-image]][coveralls-url]
 
-Wrap a ReadableStream in a TransformStream.
+Wrap a `Readable` stream in a `Transform` stream.
 
 ## Usage
 
 ```js
-var from = require('from2');
+var { Readable } = require('streamx');
 var concat = require('concat-stream');
 var toThrough = require('to-through');
 
-var readable = from([' ', 'hello', ' ', 'world']);
+var readable = Readable.from([' ', 'hello', ' ', 'world']);
 
 // Can be used as a Readable or Transform
 var maybeTransform = toThrough(readable);
 
-from(['hi', ' ', 'there', ','])
+Readable.from(['hi', ' ', 'there', ','])
   .pipe(maybeTransform)
   .pipe(
     concat(function (result) {
-      // result.toString() === 'hi there, hello world'
+      // result === 'hi there, hello world'
     })
   );
 ```
@@ -35,7 +35,8 @@ from(['hi', ' ', 'there', ','])
 
 ### `toThrough(readableStream)`
 
-Takes a `readableStream` as the only argument and returns a `through2` stream. If the returned stream is piped before `nextTick`, the wrapped `readableStream` will not flow until the upstream is flushed. If the stream is not piped before `nextTick`, it is ended and flushed (acting as a proper readable).
+Takes a `Readable` stream as the only argument and returns a `Transform` stream wrapper. Any data
+piped into the `Transform` stream is piped passed along before any data from the wrapped `Readable` is injected into the stream.
 
 ## License
 
