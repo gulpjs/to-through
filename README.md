@@ -26,7 +26,7 @@ Readable.from(['hi', ' ', 'there', ','])
   .pipe(maybeTransform)
   .pipe(
     concat(function (result) {
-      // result.toString() === 'hi there, hello world'
+      // result === 'hi there, hello world'
     })
   );
 ```
