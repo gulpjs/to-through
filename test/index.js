@@ -204,6 +204,19 @@ function suite(moduleName) {
         );
       });
     });
+
+    it('destroys the readable if the wrapper is destroyed', function (done) {
+      var readable = stream.Readable.from(contents, { objectMode: false });
+
+      var wrapped = toThrough(readable);
+
+      readable.on('error', function (err) {
+        expect(err.message).toEqual('Wrapper destroyed');
+        done();
+      });
+
+      wrapped.destroy();
+    });
   });
 
   describe('object mode (' + moduleName + ')', function () {
