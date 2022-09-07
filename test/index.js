@@ -217,6 +217,19 @@ function suite(moduleName) {
 
       wrapped.destroy();
     });
+
+    it('destroys the wrapper if the readable is destroyed', function (done) {
+      var readable = stream.Readable.from(contents, { objectMode: false });
+
+      var wrapped = toThrough(readable);
+
+      wrapped.on('close', function () {
+        expect(wrapped.destroyed).toEqual(true);
+        done();
+      });
+
+      readable.destroy();
+    });
   });
 
   describe('object mode (' + moduleName + ')', function () {
