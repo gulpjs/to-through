@@ -13,21 +13,21 @@ Wrap a `Readable` stream in a `Transform` stream.
 ## Usage
 
 ```js
-var { Readable } = require('streamx');
-var concat = require('concat-stream');
-var toThrough = require('to-through');
+var { Readable } = require("streamx");
+var concat = require("concat-stream");
+var toThrough = require("to-through");
 
-var readable = Readable.from([' ', 'hello', ' ', 'world']);
+var readable = Readable.from([" ", "hello", " ", "world"]);
 
 // Can be used as a Readable or Transform
 var maybeTransform = toThrough(readable);
 
-Readable.from(['hi', ' ', 'there', ','])
+Readable.from(["hi", " ", "there", ","])
   .pipe(maybeTransform)
   .pipe(
     concat(function (result) {
       // result === 'hi there, hello world'
-    })
+    }),
   );
 ```
 

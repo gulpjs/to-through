@@ -1,6 +1,6 @@
-'use strict';
+"use strict";
 
-var Transform = require('streamx').Transform;
+var Transform = require("streamx").Transform;
 
 // Based on help from @mafintosh via https://gist.github.com/mafintosh/92836a8d03df0ef41356e233e0f06382
 
@@ -28,14 +28,14 @@ function toThrough(readable) {
       cb();
     };
 
-    readable.on('data', onData);
-    readable.once('error', onError);
-    readable.once('end', onEnd);
+    readable.on("data", onData);
+    readable.once("error", onError);
+    readable.once("end", onEnd);
 
     function cleanup() {
-      readable.off('data', onData);
-      readable.off('error', onError);
-      readable.off('end', onEnd);
+      readable.off("data", onData);
+      readable.off("error", onError);
+      readable.off("end", onEnd);
     }
 
     function onData(data) {
@@ -67,7 +67,7 @@ function toThrough(readable) {
     if (readableClosed) {
       return;
     }
-    readable.destroy(new Error('Wrapper destroyed'));
+    readable.destroy(new Error("Wrapper destroyed"));
   }
 
   var wrapper = new Transform({
@@ -77,9 +77,9 @@ function toThrough(readable) {
   });
 
   // Forward errors from the underlying stream
-  readable.once('error', onError);
-  readable.once('end', onEnd);
-  readable.once('close', onClose);
+  readable.once("error", onError);
+  readable.once("end", onEnd);
+  readable.once("close", onClose);
 
   function onError(err) {
     destroyedByError = true;
@@ -99,19 +99,19 @@ function toThrough(readable) {
   }
 
   var shouldFlow = true;
-  wrapper.once('pipe', onPipe);
-  wrapper.on('piping', onPiping);
-  wrapper.on('newListener', onListener);
+  wrapper.once("pipe", onPipe);
+  wrapper.on("piping", onPiping);
+  wrapper.on("newListener", onListener);
 
   function onPiping() {
     maybeFlow();
-    wrapper.off('piping', onPiping);
-    wrapper.off('newListener', onListener);
+    wrapper.off("piping", onPiping);
+    wrapper.off("newListener", onListener);
   }
 
   function onListener(event) {
     // Once we've seen the data or readable event, check if we need to flow
-    if (event === 'data' || event === 'readable') {
+    if (event === "data" || event === "readable") {
       onPiping();
     }
   }
