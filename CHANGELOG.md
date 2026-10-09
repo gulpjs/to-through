@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/gulpjs/to-through/compare/v3.0.0...v4.0.0) (2026-10-09)
+
+
+### ⚠ BREAKING CHANGES
+
+* Normalize repository, dropping Node <22.15.0 ([#15](https://github.com/gulpjs/to-through/issues/15))
+
+### Miscellaneous Chores
+
+* Normalize repository, dropping Node &lt;22.15.0 ([#15](https://github.com/gulpjs/to-through/issues/15)) ([339886b](https://github.com/gulpjs/to-through/commit/339886be406f48a454e74b00f9f7b06268f33a4f))
+
 ## [3.0.0](https://www.github.com/gulpjs/to-through/compare/v2.0.0...v3.0.0) (2022-09-07)
 
 
