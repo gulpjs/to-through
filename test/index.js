@@ -230,7 +230,7 @@ function suite(moduleName) {
       });
       readable.on("error", function (err) {
         // To ensure another error isn't surfaced
-        assert.strictEqual(err, false);
+        assert.fail("should not be reached");
       });
 
       readable.destroy();
