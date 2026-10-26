@@ -1,6 +1,7 @@
 "use strict";
 
-var expect = require("expect");
+var assert = require("node:assert");
+var { describe, it } = require("node:test");
 
 var toThrough = require("../");
 
@@ -49,17 +50,17 @@ function suite(moduleName) {
     var preContents = ["from", " ", "upstream", " "];
     var contents = ["hello", " ", "world", " ", "123"];
 
-    it("can wrap a Readable and be used as a Readable", function (done) {
+    it("can wrap a Readable and be used as a Readable", function (t, done) {
       var readable = stream.Readable.from(contents, { objectMode: false });
 
-      function assert(result) {
-        expect(result).toEqual(contents.join(""));
+      function assertion(result) {
+        assert.strictEqual(result, contents.join(""));
       }
 
-      stream.pipeline([toThrough(readable), concat(assert)], done);
+      stream.pipeline([toThrough(readable), concat(assertion)], done);
     });
 
-    it("can watch data event", function (done) {
+    it("can watch data event", function (t, done) {
       var to = toThrough(stream.Readable.from(contents, { objectMode: false }));
       var data = [];
 
@@ -68,63 +69,63 @@ function suite(moduleName) {
       });
 
       to.on("end", function () {
-        expect(data.join("")).toEqual(contents.join(""));
+        assert.strictEqual(data.join(""), contents.join(""));
         done();
       });
     });
 
-    it("can wrap a Readable and be used as a Transform", function (done) {
+    it("can wrap a Readable and be used as a Transform", function (t, done) {
       var readable = stream.Readable.from(contents, { objectMode: false });
 
-      function assert(result) {
-        expect(result).toEqual(contents.join(""));
+      function assertion(result) {
+        assert.strictEqual(result, contents.join(""));
       }
 
       stream.pipeline(
         [
           stream.Readable.from([], { objectMode: false }),
           toThrough(readable),
-          concat(assert),
+          concat(assertion),
         ],
         done,
       );
     });
 
-    it("can wrap an empty Readable and be used as a Transform", function (done) {
+    it("can wrap an empty Readable and be used as a Transform", function (t, done) {
       var readable = stream.Readable.from([], { objectMode: false });
 
-      function assert(result) {
-        expect(result).toEqual(preContents.join(""));
+      function assertion(result) {
+        assert.strictEqual(result, preContents.join(""));
       }
 
       stream.pipeline(
         [
           stream.Readable.from(preContents, { objectMode: false }),
           toThrough(readable),
-          concat(assert),
+          concat(assertion),
         ],
         done,
       );
     });
 
-    it("passes through all upstream before readable", function (done) {
+    it("passes through all upstream before readable", function (t, done) {
       var readable = stream.Readable.from(contents, { objectMode: false });
 
-      function assert(result) {
-        expect(result).toEqual(preContents.concat(contents).join(""));
+      function assertion(result) {
+        assert.strictEqual(result, preContents.concat(contents).join(""));
       }
 
       stream.pipeline(
         [
           stream.Readable.from(preContents, { objectMode: false }),
           toThrough(readable),
-          concat(assert),
+          concat(assertion),
         ],
         done,
       );
     });
 
-    it("re-emits errors from readable before data", function (done) {
+    it("re-emits errors from readable before data", function (t, done) {
       var readable = new stream.Readable({
         read: function (cb) {
           var err = new Error("boom");
@@ -136,8 +137,8 @@ function suite(moduleName) {
         },
       });
 
-      function assert(err) {
-        expect(err.message).toEqual("boom");
+      function assertion(err) {
+        assert.strictEqual(err.message, "boom");
         done();
       }
 
@@ -147,11 +148,11 @@ function suite(moduleName) {
           toThrough(readable),
           concat(),
         ],
-        assert,
+        assertion,
       );
     });
 
-    it("re-emits errors from readable after some data", function (done) {
+    it("re-emits errors from readable after some data", function (t, done) {
       var items = ["hello"];
       var readable = new stream.Readable({
         read: function (cb) {
@@ -173,8 +174,8 @@ function suite(moduleName) {
         },
       });
 
-      function assert(err) {
-        expect(err.message).toEqual("boom");
+      function assertion(err) {
+        assert.strictEqual(err.message, "boom");
         done();
       }
 
@@ -184,52 +185,52 @@ function suite(moduleName) {
           toThrough(readable),
           concat(),
         ],
-        assert,
+        assertion,
       );
     });
 
-    it("does not flush the stream if not piped before nextTick", function (done) {
+    it("does not flush the stream if not piped before nextTick", function (t, done) {
       var readable = stream.Readable.from(contents, { objectMode: false });
 
       var wrapped = toThrough(readable);
 
-      function assert(result) {
-        expect(result).toEqual(preContents.concat(contents).join(""));
+      function assertion(result) {
+        assert.strictEqual(result, preContents.concat(contents).join(""));
       }
 
       process.nextTick(function () {
         stream.pipeline(
-          [stream.Readable.from(preContents), wrapped, concat(assert)],
+          [stream.Readable.from(preContents), wrapped, concat(assertion)],
           done,
         );
       });
     });
 
-    it("destroys the readable if the wrapper is destroyed", function (done) {
+    it("destroys the readable if the wrapper is destroyed", function (t, done) {
       var readable = stream.Readable.from(contents, { objectMode: false });
 
       var wrapped = toThrough(readable);
 
       readable.on("error", function (err) {
-        expect(err.message).toEqual("Wrapper destroyed");
+        assert.strictEqual(err.message, "Wrapper destroyed");
         done();
       });
 
       wrapped.destroy();
     });
 
-    it("destroys the wrapper if the readable is destroyed", function (done) {
+    it("destroys the wrapper if the readable is destroyed", function (t, done) {
       var readable = stream.Readable.from(contents, { objectMode: false });
 
       var wrapped = toThrough(readable);
 
       wrapped.on("close", function () {
-        expect(wrapped.destroyed).toEqual(true);
+        assert.strictEqual(wrapped.destroyed, true);
         done();
       });
       readable.on("error", function (err) {
         // To ensure another error isn't surfaced
-        expect(err).toBeUndefined();
+        assert.fail("should not be reached");
       });
 
       readable.destroy();
@@ -263,121 +264,135 @@ function suite(moduleName) {
       { value: 20 },
     ];
 
-    it("can wrap a Readable and be used as a Readable", function (done) {
+    it("can wrap a Readable and be used as a Readable", function (t, done) {
       var readable = stream.Readable.from(contents);
 
-      function assert(result) {
-        expect(result).toEqual(contents);
+      function assertion(result) {
+        assert.deepStrictEqual(result, contents);
       }
 
       stream.pipeline(
-        [toThrough(readable), concat(assert, { objectMode: true })],
+        [toThrough(readable), concat(assertion, { objectMode: true })],
         done,
       );
     });
 
-    it("can wrap a Readable and be used as a Transform", function (done) {
+    it("can wrap a Readable and be used as a Transform", function (t, done) {
       var readable = stream.Readable.from(contents);
 
-      function assert(result) {
-        expect(result).toEqual(contents);
+      function assertion(result) {
+        assert.deepStrictEqual(result, contents);
       }
 
       stream.pipeline(
         [
           stream.Readable.from([]),
           toThrough(readable),
-          concat(assert, { objectMode: true }),
+          concat(assertion, { objectMode: true }),
         ],
         done,
       );
     });
 
-    it("passes through all upstream before readable", function (done) {
+    it("passes through all upstream before readable", function (t, done) {
       var readable = stream.Readable.from(contents);
 
-      function assert(result) {
-        expect(result).toEqual(preContents.concat(contents));
+      function assertion(result) {
+        assert.deepStrictEqual(result, preContents.concat(contents));
       }
 
       stream.pipeline(
         [
           stream.Readable.from(preContents),
           toThrough(readable),
-          concat(assert, { objectMode: true }),
+          concat(assertion, { objectMode: true }),
         ],
         done,
       );
     });
 
-    it("inherits the highWaterMark of the wrapped stream", function (done) {
-      this.timeout(10000);
+    it(
+      "inherits the highWaterMark of the wrapped stream",
+      { timeout: 10000 },
+      function (t, done) {
+        var readable = stream.Readable.from(contents, {
+          highWaterMark: moduleName === "streamx" ? 1024 : 1,
+        });
 
-      var readable = stream.Readable.from(contents, {
-        highWaterMark: moduleName === "streamx" ? 1024 : 1,
-      });
+        function assertion(result) {
+          assert.deepStrictEqual(result, preContents.concat(contents));
+        }
 
-      function assert(result) {
-        expect(result).toEqual(preContents.concat(contents));
-      }
+        stream.pipeline(
+          [
+            stream.Readable.from(preContents),
+            toThrough(readable),
+            concat(assertion, { objectMode: true, timeout: 250 }),
+          ],
+          done,
+        );
+      },
+    );
 
-      stream.pipeline(
-        [
-          stream.Readable.from(preContents),
-          toThrough(readable),
-          concat(assert, { objectMode: true, timeout: 250 }),
-        ],
-        done,
-      );
-    });
+    it(
+      "respects highWaterMark of the output stream",
+      { timeout: 10000 },
+      function (t, done) {
+        var readable = stream.Readable.from(contents);
 
-    it("respects highWaterMark of the output stream", function (done) {
-      this.timeout(10000);
+        function assertion(result) {
+          assert.deepStrictEqual(result, preContents.concat(contents));
+        }
 
-      var readable = stream.Readable.from(contents);
+        stream.pipeline(
+          [
+            stream.Readable.from(preContents),
+            toThrough(readable),
+            concat(assertion, {
+              highWaterMark: 1,
+              objectMode: true,
+              timeout: 250,
+            }),
+          ],
+          done,
+        );
+      },
+    );
 
-      function assert(result) {
-        expect(result).toEqual(preContents.concat(contents));
-      }
+    it(
+      "respects highWaterMark of itself and the output stream",
+      { timeout: 10000 },
+      function (t, done) {
+        var readable = stream.Readable.from(contents, {
+          highWaterMark: moduleName === "streamx" ? 1024 : 1,
+        });
 
-      stream.pipeline(
-        [
-          stream.Readable.from(preContents),
-          toThrough(readable),
-          concat(assert, { highWaterMark: 1, objectMode: true, timeout: 250 }),
-        ],
-        done,
-      );
-    });
+        function assertion(result) {
+          assert.deepStrictEqual(result, preContents.concat(contents));
+        }
 
-    it("respects highWaterMark of itself and the output stream", function (done) {
-      this.timeout(10000);
+        stream.pipeline(
+          [
+            stream.Readable.from(preContents),
+            toThrough(readable),
+            concat(assertion, {
+              highWaterMark: 1,
+              objectMode: true,
+              timeout: 250,
+            }),
+          ],
+          done,
+        );
+      },
+    );
 
-      var readable = stream.Readable.from(contents, {
-        highWaterMark: moduleName === "streamx" ? 1024 : 1,
-      });
-
-      function assert(result) {
-        expect(result).toEqual(preContents.concat(contents));
-      }
-
-      stream.pipeline(
-        [
-          stream.Readable.from(preContents),
-          toThrough(readable),
-          concat(assert, { highWaterMark: 1, objectMode: true, timeout: 250 }),
-        ],
-        done,
-      );
-    });
-
-    it("does not flush the stream if not piped before nextTick", function (done) {
+    it("does not flush the stream if not piped before nextTick", function (t, done) {
       var readable = stream.Readable.from(contents);
 
       var wrapped = toThrough(readable);
 
-      function assert(result) {
-        expect(result).toEqual(preContents.concat(contents));
+      function assertion(result) {
+        assert.deepStrictEqual(result, preContents.concat(contents));
       }
 
       process.nextTick(function () {
@@ -385,7 +400,7 @@ function suite(moduleName) {
           [
             stream.Readable.from(preContents),
             wrapped,
-            concat(assert, { objectMode: true }),
+            concat(assertion, { objectMode: true }),
           ],
           done,
         );
